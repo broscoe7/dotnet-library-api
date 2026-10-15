@@ -1,0 +1,6 @@
+@HostAddress = https://localhost:7167
+
+GET {{HostAddress}}/api/categories
+Accept: application/json
+
+###
