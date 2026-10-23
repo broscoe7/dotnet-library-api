@@ -1,6 +1,7 @@
 using LibraryManagement.Api.DataAccess;
 using LibraryManagement.Api.DTOs.Authors;
 using LibraryManagement.Api.Entities;
+using LibraryManagement.Api.Mapping;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -8,22 +9,14 @@ namespace LibraryManagement.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class AuthorsController(LibraryDbContext dbContext): ControllerBase
+public class AuthorsController(LibraryDbContext dbContext, AuthorMapper mapper): ControllerBase
 {
     [HttpGet]
     [ProducesResponseType(typeof(List<ReadAuthorDTO>), StatusCodes.Status200OK)]
     public async Task<ActionResult<List<ReadAuthorDTO>>> GetAll()
     {
         var authors = await dbContext.Authors.ToListAsync();
-        var readDtos = authors.Select(author =>
-            new ReadAuthorDTO
-            {
-                Id = author.Id,
-                FirstName = author.FirstName,
-                LastName = author.LastName,
-                YearOfBirth = author.YearOfBirth,
-            }).ToList();
-        return Ok(readDtos);
+        return Ok(authors.Select(mapper.ToReadDto).ToList());
     }
 
     [HttpGet("{id:int}")]
@@ -39,14 +32,7 @@ public class AuthorsController(LibraryDbContext dbContext): ControllerBase
                 statusCode: StatusCodes.Status404NotFound);
         }
 
-        var readDto = new ReadAuthorDTO
-        {
-            Id = author.Id,
-            FirstName = author.FirstName,
-            LastName = author.LastName,
-            YearOfBirth = author.YearOfBirth,
-        };
-        return Ok(readDto);
+        return Ok(mapper.ToReadDto(author));
     }
 
     [HttpPost]
@@ -62,23 +48,11 @@ public class AuthorsController(LibraryDbContext dbContext): ControllerBase
                 statusCode: StatusCodes.Status400BadRequest);
         }
 
-        var author = new Author
-        {
-            FirstName = createDto.FirstName,
-            LastName = createDto.LastName,
-            YearOfBirth = createDto.YearOfBirth,
-        };
+        var author = mapper.ToEntity(createDto);
         dbContext.Authors.Add(author);
         await dbContext.SaveChangesAsync();
 
-        var readDto = new ReadAuthorDTO
-        {
-            Id = author.Id,
-            FirstName = author.FirstName,
-            LastName = author.LastName,
-            YearOfBirth = author.YearOfBirth,
-        };
-        return CreatedAtAction(nameof(GetById), new {id = author.Id}, readDto);
+        return CreatedAtAction(nameof(GetById), new {id = author.Id}, mapper.ToReadDto(author));
     }
 
 
@@ -105,19 +79,10 @@ public class AuthorsController(LibraryDbContext dbContext): ControllerBase
                 statusCode: StatusCodes.Status400BadRequest);
         }
 
-        existingAuthor.FirstName = updateDto.FirstName;
-        existingAuthor.LastName = updateDto.LastName;
-        existingAuthor.YearOfBirth = updateDto.YearOfBirth;
+        mapper.UpdateEntity(updateDto, existingAuthor);
         await dbContext.SaveChangesAsync();
 
-        var readDto = new ReadAuthorDTO
-        {
-            Id = existingAuthor.Id,
-            FirstName = existingAuthor.FirstName,
-            LastName = existingAuthor.LastName,
-            YearOfBirth = existingAuthor.YearOfBirth,
-        };
-        return Ok(readDto);
+        return Ok(mapper.ToReadDto(existingAuthor));
     }
 
     [HttpDelete("{id:int}")]

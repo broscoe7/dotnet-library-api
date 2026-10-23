@@ -1,6 +1,7 @@
 using LibraryManagement.Api.DataAccess;
 using LibraryManagement.Api.DTOs.Categories;
 using LibraryManagement.Api.Entities;
+using LibraryManagement.Api.Mapping;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;
 
@@ -34,19 +35,13 @@ public static class CategoryEndpoints
             .ProducesProblem(StatusCodes.Status400BadRequest);
     }
     
-    private static async Task<Ok<List<ReadCategoryDTO>>> GetAll(LibraryDbContext dbContext)
+    private static async Task<Ok<List<ReadCategoryDTO>>> GetAll(LibraryDbContext dbContext, CategoryMapper mapper)
     {
         var categories = await dbContext.Categories.ToListAsync();
-        var readDtos = categories.Select(category => 
-            new ReadCategoryDTO
-            {
-                Id = category.Id, 
-                Name = category.Name,
-            }).ToList();
-        return TypedResults.Ok(readDtos);
+        return TypedResults.Ok(categories.Select(mapper.ToReadDto).ToList());
     }
 
-    private static async Task<Results<Ok<ReadCategoryDTO>, ProblemHttpResult>> GetById(int id, LibraryDbContext dbContext)
+    private static async Task<Results<Ok<ReadCategoryDTO>, ProblemHttpResult>> GetById(int id, LibraryDbContext dbContext, CategoryMapper mapper)
     {
         var category = await dbContext.Categories.FindAsync(id);
         if (category is null)
@@ -54,12 +49,11 @@ public static class CategoryEndpoints
             return TypedResults
                 .Problem(detail: $"Cannot find category with Id {id}", statusCode: StatusCodes.Status404NotFound);
         }
-
-        var readDto = new ReadCategoryDTO { Id = category.Id, Name = category.Name };
-        return TypedResults.Ok(readDto);
+        
+        return TypedResults.Ok(mapper.ToReadDto(category));
     }
 
-    private static async Task<Results<CreatedAtRoute<ReadCategoryDTO>, ProblemHttpResult>> Create(CreateCategoryDTO createDto, LibraryDbContext dbContext)
+    private static async Task<Results<CreatedAtRoute<ReadCategoryDTO>, ProblemHttpResult>> Create(CreateCategoryDTO createDto, LibraryDbContext dbContext, CategoryMapper mapper)
     {
         if (string.IsNullOrWhiteSpace(createDto.Name))
         {
@@ -77,18 +71,17 @@ public static class CategoryEndpoints
             );
         }
 
-        var category = new Category { Name = createDto.Name };
+        var category = mapper.ToEntity(createDto);
         dbContext.Categories.Add(category);
         await dbContext.SaveChangesAsync();
         
-        var readDto = new ReadCategoryDTO { Id = category.Id, Name = category.Name };
         return TypedResults.CreatedAtRoute(
-            readDto,
+            mapper.ToReadDto(category),
             "GetCategoryById",
             new {id = category.Id});
     }
 
-    private static async Task<Results<Ok<ReadCategoryDTO>, ProblemHttpResult>> Update(int id, UpdateCategoryDTO updateDto, LibraryDbContext dbContext)
+    private static async Task<Results<Ok<ReadCategoryDTO>, ProblemHttpResult>> Update(int id, UpdateCategoryDTO updateDto, LibraryDbContext dbContext, CategoryMapper mapper)
     {
         if (string.IsNullOrWhiteSpace(updateDto.Name))
         {
@@ -111,10 +104,9 @@ public static class CategoryEndpoints
                 detail: $"A category with Name {updateDto.Name} already exists",
                 statusCode: StatusCodes.Status409Conflict);
         }
-        existingCategory.Name = updateDto.Name;
+        mapper.UpdateEntity(updateDto, existingCategory);
         await dbContext.SaveChangesAsync();
-        var readDto = new ReadCategoryDTO { Id = existingCategory.Id, Name = existingCategory.Name };
-        return TypedResults.Ok(readDto);
+        return TypedResults.Ok(mapper.ToReadDto(existingCategory));
     }
 
     private static async Task<Results<NoContent, ProblemHttpResult>> Delete(int id, LibraryDbContext dbContext)
