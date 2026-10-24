@@ -1,7 +1,6 @@
 namespace LibraryManagement.Api.DTOs.Categories;
 
-public record ReadCategoryDTO
+public record UpdateCategoryDto
 {
-    public required int Id { get; init; }
     public required string Name { get; init; }
 }

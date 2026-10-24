@@ -1,6 +1,5 @@
 using LibraryManagement.Api.DataAccess;
 using LibraryManagement.Api.DTOs.Authors;
-using LibraryManagement.Api.Entities;
 using LibraryManagement.Api.Mapping;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -38,16 +37,8 @@ public class AuthorsController(LibraryDbContext dbContext, AuthorMapper mapper):
     [HttpPost]
     [ProducesResponseType(typeof(ReadAuthorDTO), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
-    public async Task<ActionResult<ReadAuthorDTO>> Create(CreateAuthorDTO createDto)
+    public async Task<ActionResult<ReadAuthorDTO>> Create(CreateAuthorDto createDto)
     {
-        if (string.IsNullOrWhiteSpace(createDto.FirstName) ||
-        string.IsNullOrWhiteSpace(createDto.LastName))
-        {
-            return Problem(
-                detail: "Author's first and last names cannot be empty",
-                statusCode: StatusCodes.Status400BadRequest);
-        }
-
         var author = mapper.ToEntity(createDto);
         dbContext.Authors.Add(author);
         await dbContext.SaveChangesAsync();
@@ -60,7 +51,7 @@ public class AuthorsController(LibraryDbContext dbContext, AuthorMapper mapper):
     [ProducesResponseType(typeof(ReadAuthorDTO), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<ReadAuthorDTO>> Update(int id, UpdateAuthorDTO updateDto)
+    public async Task<ActionResult<ReadAuthorDTO>> Update(int id, UpdateAuthorDto updateDto)
     {
         var existingAuthor = await dbContext.Authors.FindAsync(id);
 
@@ -69,14 +60,6 @@ public class AuthorsController(LibraryDbContext dbContext, AuthorMapper mapper):
             return Problem(
                 detail: $"Cannot find author with Id {id}",
                 statusCode: StatusCodes.Status404NotFound);
-        }
-
-        if (string.IsNullOrWhiteSpace(updateDto.FirstName) ||
-            string.IsNullOrWhiteSpace(updateDto.LastName))
-        {
-            return Problem(
-                detail: "Author's first and last names cannot be empty",
-                statusCode: StatusCodes.Status400BadRequest);
         }
 
         mapper.UpdateEntity(updateDto, existingAuthor);

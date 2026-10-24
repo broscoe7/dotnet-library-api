@@ -1,8 +1,11 @@
+using FluentValidation;
 using LibraryManagement.Api.DataAccess;
 using LibraryManagement.Api.DTOs.Categories;
 using LibraryManagement.Api.Entities;
+using LibraryManagement.Api.Extensions;
 using LibraryManagement.Api.Mapping;
 using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace LibraryManagement.Api.Endpoints;
@@ -35,13 +38,13 @@ public static class CategoryEndpoints
             .ProducesProblem(StatusCodes.Status400BadRequest);
     }
     
-    private static async Task<Ok<List<ReadCategoryDTO>>> GetAll(LibraryDbContext dbContext, CategoryMapper mapper)
+    private static async Task<Ok<List<ReadCategoryDto>>> GetAll(LibraryDbContext dbContext, CategoryMapper mapper)
     {
         var categories = await dbContext.Categories.ToListAsync();
         return TypedResults.Ok(categories.Select(mapper.ToReadDto).ToList());
     }
 
-    private static async Task<Results<Ok<ReadCategoryDTO>, ProblemHttpResult>> GetById(int id, LibraryDbContext dbContext, CategoryMapper mapper)
+    private static async Task<Results<Ok<ReadCategoryDto>, ProblemHttpResult>> GetById(int id, LibraryDbContext dbContext, CategoryMapper mapper)
     {
         var category = await dbContext.Categories.FindAsync(id);
         if (category is null)
@@ -53,14 +56,12 @@ public static class CategoryEndpoints
         return TypedResults.Ok(mapper.ToReadDto(category));
     }
 
-    private static async Task<Results<CreatedAtRoute<ReadCategoryDTO>, ProblemHttpResult>> Create(CreateCategoryDTO createDto, LibraryDbContext dbContext, CategoryMapper mapper)
+    private static async Task<Results<CreatedAtRoute<ReadCategoryDto>, ProblemHttpResult>> Create(CreateCategoryDto createDto, LibraryDbContext dbContext, CategoryMapper mapper, IValidator<CreateCategoryDto> validator)
     {
-        if (string.IsNullOrWhiteSpace(createDto.Name))
+        var validationResult = await validator.ValidateAsync(createDto);
+        if (!validationResult.IsValid)
         {
-            return TypedResults.Problem(
-                detail: "The Name field cannot be empty",
-                statusCode: StatusCodes.Status400BadRequest
-            );
+            return validationResult.ToProblem();
         }
         
         if (await dbContext.Categories.AnyAsync(c => c.Name == createDto.Name))
@@ -81,14 +82,12 @@ public static class CategoryEndpoints
             new {id = category.Id});
     }
 
-    private static async Task<Results<Ok<ReadCategoryDTO>, ProblemHttpResult>> Update(int id, UpdateCategoryDTO updateDto, LibraryDbContext dbContext, CategoryMapper mapper)
+    private static async Task<Results<Ok<ReadCategoryDto>, ProblemHttpResult>> Update(int id, UpdateCategoryDto updateDto, LibraryDbContext dbContext, CategoryMapper mapper, IValidator<UpdateCategoryDto> validator)
     {
-        if (string.IsNullOrWhiteSpace(updateDto.Name))
+        var validationResult = await validator.ValidateAsync(updateDto);
+        if (!validationResult.IsValid)
         {
-            return TypedResults.Problem(
-                detail: "The Name field cannot be empty",
-                statusCode: StatusCodes.Status400BadRequest
-            );
+            return validationResult.ToProblem();
         }
         var existingCategory = await dbContext.Categories.FindAsync(id);
         if (existingCategory is null)

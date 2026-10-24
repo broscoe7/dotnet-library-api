@@ -8,11 +8,11 @@ namespace LibraryManagement.Api.Mapping;
 public partial class CategoryMapper
 {
     
-    public partial ReadCategoryDTO ToReadDto(Category source);
+    public partial ReadCategoryDto ToReadDto(Category source);
   
     [MapperIgnoreTarget(nameof(Category.Id))]
-    public partial Category ToEntity(CreateCategoryDTO source);
+    public partial Category ToEntity(CreateCategoryDto source);
   
     [MapperIgnoreTarget(nameof(Category.Id))]
-    public partial void UpdateEntity(UpdateCategoryDTO source, Category target);    
+    public partial void UpdateEntity(UpdateCategoryDto source, Category target);    
 }

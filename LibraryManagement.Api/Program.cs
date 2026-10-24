@@ -1,6 +1,11 @@
+using System.Diagnostics;
+using FluentValidation;
 using LibraryManagement.Api.DataAccess;
+using LibraryManagement.Api.DTOs.Categories;
 using LibraryManagement.Api.Endpoints;
 using LibraryManagement.Api.Mapping;
+using LibraryManagement.Api.Middleware;
+using LibraryManagement.Api.Validators;
 using Microsoft.EntityFrameworkCore;
 using Scalar.AspNetCore;
 
@@ -17,18 +22,24 @@ builder.Services.AddDbContext<LibraryDbContext>(options => options.UseNpgsql(
 ));
 builder.Services.AddScoped<AuthorMapper>();
 builder.Services.AddScoped<CategoryMapper>();
+builder.Services.AddScoped<IValidator<CreateCategoryDto>, CreateCategoryDtoValidator>();
+builder.Services.AddScoped<IValidator<UpdateCategoryDto>, UpdateCategoryDtoValidator>();
+builder.Services.AddProblemDetails();
+builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
+app.UseExceptionHandler();
+app.UseHttpsRedirection();
+app.UseMiddleware<RequestTimingMiddleware>();
+
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
     app.MapScalarApiReference();
     await DataSeeder.SeedAsync(app.Services);
 }
-
-app.UseHttpsRedirection();
 
 app.MapControllers();
 app.MapCategoryEndpoints();

@@ -1,6 +1,6 @@
 namespace LibraryManagement.Api.DTOs.Categories;
 
-public record CreateCategoryDTO
+public record CreateCategoryDto
 {
     public required string Name { get; init; }
 }

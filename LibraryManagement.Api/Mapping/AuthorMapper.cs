@@ -10,8 +10,8 @@ public partial class AuthorMapper
   public partial ReadAuthorDTO ToReadDto(Author source);
   
   [MapperIgnoreTarget(nameof(Author.Id))]
-  public partial Author ToEntity(CreateAuthorDTO source);
+  public partial Author ToEntity(CreateAuthorDto source);
   
   [MapperIgnoreTarget(nameof(Author.Id))]
-  public partial void UpdateEntity(UpdateAuthorDTO source, Author target);
+  public partial void UpdateEntity(UpdateAuthorDto source, Author target);
 }
