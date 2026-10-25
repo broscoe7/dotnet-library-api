@@ -3,6 +3,7 @@ using LibraryManagement.Api.DataAccess;
 using LibraryManagement.Api.DTOs.Categories;
 using LibraryManagement.Api.Entities;
 using LibraryManagement.Api.Extensions;
+using LibraryManagement.Api.Filters;
 using LibraryManagement.Api.Mapping;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
@@ -28,9 +29,11 @@ public static class CategoryEndpoints
         group.MapGet("/{id:int}", GetById).WithName("GetCategoryById")
             .ProducesProblem(StatusCodes.Status404NotFound);
         group.MapPost("/", Create)
+            .AddEndpointFilter<ValidationFilter<CreateCategoryDto>>()
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .ProducesProblem(StatusCodes.Status409Conflict);
         group.MapPut("/{id:int}", Update)
+            .AddEndpointFilter<ValidationFilter<UpdateCategoryDto>>()
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status409Conflict);
@@ -56,14 +59,8 @@ public static class CategoryEndpoints
         return TypedResults.Ok(mapper.ToReadDto(category));
     }
 
-    private static async Task<Results<CreatedAtRoute<ReadCategoryDto>, ProblemHttpResult>> Create(CreateCategoryDto createDto, LibraryDbContext dbContext, CategoryMapper mapper, IValidator<CreateCategoryDto> validator)
+    private static async Task<Results<CreatedAtRoute<ReadCategoryDto>, ProblemHttpResult>> Create(CreateCategoryDto createDto, LibraryDbContext dbContext, CategoryMapper mapper)
     {
-        var validationResult = await validator.ValidateAsync(createDto);
-        if (!validationResult.IsValid)
-        {
-            return validationResult.ToProblem();
-        }
-        
         if (await dbContext.Categories.AnyAsync(c => c.Name == createDto.Name))
         {
             return TypedResults.Problem(
@@ -82,13 +79,8 @@ public static class CategoryEndpoints
             new {id = category.Id});
     }
 
-    private static async Task<Results<Ok<ReadCategoryDto>, ProblemHttpResult>> Update(int id, UpdateCategoryDto updateDto, LibraryDbContext dbContext, CategoryMapper mapper, IValidator<UpdateCategoryDto> validator)
+    private static async Task<Results<Ok<ReadCategoryDto>, ProblemHttpResult>> Update(int id, UpdateCategoryDto updateDto, LibraryDbContext dbContext, CategoryMapper mapper)
     {
-        var validationResult = await validator.ValidateAsync(updateDto);
-        if (!validationResult.IsValid)
-        {
-            return validationResult.ToProblem();
-        }
         var existingCategory = await dbContext.Categories.FindAsync(id);
         if (existingCategory is null)
         {

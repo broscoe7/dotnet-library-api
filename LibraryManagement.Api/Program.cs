@@ -3,6 +3,7 @@ using FluentValidation;
 using LibraryManagement.Api.DataAccess;
 using LibraryManagement.Api.DTOs.Categories;
 using LibraryManagement.Api.Endpoints;
+using LibraryManagement.Api.Filters;
 using LibraryManagement.Api.Mapping;
 using LibraryManagement.Api.Middleware;
 using LibraryManagement.Api.Validators;
@@ -26,6 +27,7 @@ builder.Services.AddScoped<IValidator<CreateCategoryDto>, CreateCategoryDtoValid
 builder.Services.AddScoped<IValidator<UpdateCategoryDto>, UpdateCategoryDtoValidator>();
 builder.Services.AddProblemDetails();
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
+builder.Services.AddScoped<LogActionFilter>();
 
 var app = builder.Build();
 
