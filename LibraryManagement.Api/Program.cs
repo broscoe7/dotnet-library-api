@@ -23,6 +23,7 @@ builder.Services.AddDbContext<LibraryDbContext>(options => options.UseNpgsql(
 ));
 builder.Services.AddScoped<AuthorMapper>();
 builder.Services.AddScoped<CategoryMapper>();
+builder.Services.AddScoped<BookMapper>();
 builder.Services.AddScoped<IValidator<CreateCategoryDto>, CreateCategoryDtoValidator>();
 builder.Services.AddScoped<IValidator<UpdateCategoryDto>, UpdateCategoryDtoValidator>();
 builder.Services.AddProblemDetails();
