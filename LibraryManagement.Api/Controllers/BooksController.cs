@@ -2,6 +2,8 @@ using LibraryManagement.Api.DataAccess;
 using LibraryManagement.Api.DTOs.Books;
 using LibraryManagement.Api.Entities;
 using LibraryManagement.Api.Mapping;
+using LibraryManagement.Api.RequestParameters;
+using LibraryManagement.Api.RequestParameters.Enums;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -13,12 +15,53 @@ public class BooksController(LibraryDbContext dbContext, BookMapper mapper): Con
 {
     [HttpGet]
     [ProducesResponseType(typeof(List<ReadBookDto>), StatusCodes.Status200OK)]
-    public async Task<ActionResult<List<ReadBookDto>>> GetAll()
+    public async Task<ActionResult<List<ReadBookDto>>> GetAll(
+        [FromQuery] PaginationParameters pagination, 
+        [FromQuery] BookFilteringParameters filters,
+        [FromQuery] SortingParameters<BookSortBy> sortingParameters)
     {
-        var books = await dbContext.Books
+        var query = dbContext.Books
             .Include(book => book.Category)
             .Include(book => book.Authors)
+            .AsQueryable();
+        
+        // apply filters
+        if (filters.Title is not null)
+        {
+            query = query.Where(book => book.Title.Contains(filters.Title));
+        }
+        if (filters.CategoryId is not null)
+        {
+            query = query.Where(book => book.CategoryId == filters.CategoryId);
+        }
+        if (filters.AuthorId is not null)
+        {
+            query = query.Where(book => book.Authors.Any(author => author.Id == filters.AuthorId));
+        }
+        
+        // sort
+        query = sortingParameters.SortBy switch
+        {
+            BookSortBy.Title => sortingParameters.SortDirection == SortDirections.Asc
+                ? query.OrderBy(book => book.Title)
+                : query.OrderByDescending(book => book.Title),
+            BookSortBy.AvailableCopies => sortingParameters.SortDirection == SortDirections.Asc
+                ? query.OrderBy(book => book.AvailableCopies)
+                : query.OrderByDescending(book => book.AvailableCopies),
+            _ => query.OrderBy(book => book.Id)
+        };
+        
+        var totalCount = await query.CountAsync();
+        var totalPages = (int)Math.Ceiling((double)totalCount / pagination.PageSize);
+        
+        var books = await query
+            .Skip((pagination.PageNumber - 1) * pagination.PageSize)
+            .Take(pagination.PageSize)
             .ToListAsync();
+
+        Response.Headers.Append("X-Total-Count", totalCount.ToString());
+        Response.Headers.Append("X-Total-Pages", totalPages.ToString());
+        
         return Ok(books.Select(mapper.ToReadDto).ToList());
     }
 

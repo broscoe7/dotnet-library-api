@@ -2,6 +2,7 @@ using LibraryManagement.Api.DataAccess;
 using LibraryManagement.Api.DTOs.Authors;
 using LibraryManagement.Api.Filters;
 using LibraryManagement.Api.Mapping;
+using LibraryManagement.Api.RequestParameters;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -14,9 +15,20 @@ public class AuthorsController(LibraryDbContext dbContext, AuthorMapper mapper):
 {
     [HttpGet]
     [ProducesResponseType(typeof(List<ReadAuthorDto>), StatusCodes.Status200OK)]
-    public async Task<ActionResult<List<ReadAuthorDto>>> GetAll()
+    public async Task<ActionResult<List<ReadAuthorDto>>> GetAll([FromQuery] PaginationParameters pagination)
     {
-        var authors = await dbContext.Authors.ToListAsync();
+        var totalCount = await dbContext.Books.CountAsync();
+        var totalPages = (int)Math.Ceiling((double)totalCount / pagination.PageSize);
+        
+        var authors = await dbContext.Authors
+            .OrderBy(author => author.Id)
+            .Skip((pagination.PageNumber - 1) * pagination.PageSize)
+            .Take(pagination.PageSize)
+            .ToListAsync();
+
+        Response.Headers.Append("X-Total-Count", totalCount.ToString());
+        Response.Headers.Append("X-Total-Pages", totalPages.ToString());
+        
         return Ok(authors.Select(mapper.ToReadDto).ToList());
     }
 
