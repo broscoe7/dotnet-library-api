@@ -11,6 +11,7 @@ public class WebApiController : ControllerBase
         {
             ErrorType.Validation => StatusCodes.Status400BadRequest,
             ErrorType.NotFound => StatusCodes.Status404NotFound,
+            ErrorType.Conflict => StatusCodes.Status409Conflict,
             _ => StatusCodes.Status500InternalServerError
         };
         return Problem(detail: error.Description, statusCode: statusCode);

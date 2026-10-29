@@ -32,6 +32,7 @@ builder.Services.AddProblemDetails();
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddScoped<LogActionFilter>();
 builder.Services.AddScoped<IBooksService, BooksService>(); 
+builder.Services.AddScoped<IAuthorsService, AuthorsService>(); 
 
 var app = builder.Build();
 
