@@ -2,6 +2,7 @@ using LibraryManagement.Api.DTOs.Authors;
 using LibraryManagement.Api.Filters;
 using LibraryManagement.Api.RequestParameters;
 using LibraryManagement.Api.Services.Contracts;
+using Microsoft.AspNetCore.JsonPatch.SystemTextJson;
 using Microsoft.AspNetCore.Mvc;
 
 namespace LibraryManagement.Api.Controllers;
@@ -71,6 +72,36 @@ public class AuthorsController(IAuthorsService service) : WebApiController
         return Ok(result.Value);
     }
 
+    [HttpPatch("{id:int}")]
+    [Consumes("application/json-patch+json")]
+    [ProducesResponseType(typeof(ReadAuthorDetailDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<ReadAuthorDetailDto>> Patch(int id, JsonPatchDocument<PatchAuthorDto> patchDocument)
+    {
+        // because the patch request data is typed as JsonPatchDocument, the data annotations will
+        // not be automatically applied. We have to manually activate the validation.
+        var patchDto = new PatchAuthorDto();
+        patchDocument.ApplyTo(
+            patchDto, 
+            jsonPatchError => ModelState.AddModelError(
+                jsonPatchError.AffectedObject.GetType().Name, 
+                jsonPatchError.ErrorMessage));
+        if (!TryValidateModel(patchDto))
+        {
+            return ValidationProblem(ModelState);
+            // ModelState is a dictionary that .Net stores validation errors in
+        }
+        
+        var result = await service.PatchAsync(id, patchDocument);
+        if (result.IsError)
+        {
+            return Problem(result.FirstError);
+        }
+
+        return Ok(result.Value);
+    }
+    
     [HttpDelete("{id:int}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
